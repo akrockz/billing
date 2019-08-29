@@ -1,0 +1,284 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Controls the Athena and Lambdas for generating cost reports
+Parameters:
+  CostUsageReport:
+    Type: String
+  s3CURBucket:
+    Type: String
+  s3ViewsBucket:
+    Type: String
+    MinLength: '3'
+    MaxLength: '63'
+Mappings:
+  RegionMap:
+    us-east-1:
+      bucketname: a-athena-nvirginia
+    us-east-2:
+      bucketname: a-athena-ohio
+    us-west-1:
+      bucketname: a-athena-ncalifornia
+    us-west-2:
+      bucketname: a-athena-oregon
+    ca-central-1:
+      bucketname: a-athena-central-canada
+    eu-west-1:
+      bucketname: a-athena-ireland
+    eu-west-2:
+      bucketname: a-athena-london
+    ap-southeast-1:
+      bucketname: a-athena-singapore
+    ap-northeast-1:
+      bucketname: a-athena-tokyo
+    ap-south-1:
+      bucketname: a-athena-mumbai
+    ap-northeast-2:
+      bucketname: a-athena-seoul
+    ap-southeast-2:
+      bucketname: a-athena-sydney
+    eu-central-1:
+      bucketname: a-athena-frankfurt
+    sa-east-1:
+      bucketname: a-athena-sao-paulo
+Resources:
+  myS3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName:
+        Ref: s3ViewsBucket
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - lambda.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      Path: "/"
+      Policies:
+      - PolicyName: lambdaroot
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - cloudwatch:*
+            - athena:*
+            - glue:*
+            - dynamodb:*
+            - events:*
+            - iam:ListAttachedRolePolicies
+            - iam:ListRolePolicies
+            - iam:ListRoles
+            - iam:PassRole
+            - lambda:*
+            - logs:*
+            - s3:*
+            - sns:ListSubscriptions
+            - sns:ListSubscriptionsByTopic
+            - sns:ListTopics
+            - sns:Subscribe
+            - sns:Unsubscribe
+            - sns:Publish
+            - sqs:ListQueues
+            - sqs:SendMessage
+            - tag:GetResources
+            - kms:ListAliases
+            - ec2:DescribeVpcs
+            - ec2:DescribeSubnets
+            - ec2:DescribeSecurityGroups
+            - xray:PutTraceSegments
+            - xray:PutTelemetryRecords
+            Resource: "*"
+  CURLambdaFn:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: aws-cost-n-usage-main-lambda-fn-A
+      Handler: File-Reader-Main-Lmbda-Fn-A.handler
+      Role:
+        Fn::GetAtt:
+        - LambdaExecutionRole
+        - Arn
+      Timeout: '300'
+      Runtime: nodejs6.10
+      MemorySize: 1536
+      Code:
+        S3Bucket:
+          Fn::FindInMap:
+          - RegionMap
+          - Ref: AWS::Region
+          - bucketname
+        S3Key: File-Reader-Main-Lmbda-Fn-A.zip
+      Environment:
+        Variables:
+          S3_BUCKET:
+            Ref: s3ViewsBucket
+          iCUR_NAME:
+            Ref: CostUsageReport
+          CUR_S3_BUCKET:
+            Ref: s3CURBucket
+          REGIONX:
+            Ref: AWS::Region
+  S3CURLambdaFn:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: aws-cost-n-usage-S3-lambda-fn-B
+      Handler: File-Reader-S3-CUR-Parser-Lmbda-B.handler
+      Role:
+        Fn::GetAtt:
+        - LambdaExecutionRole
+        - Arn
+      Timeout: '300'
+      Runtime: nodejs6.10
+      MemorySize: 1536
+      Code:
+        S3Bucket:
+          Fn::FindInMap:
+          - RegionMap
+          - Ref: AWS::Region
+          - bucketname
+        S3Key: File-Reader-S3-CUR-Parser-Lmbda-B.zip
+      Environment:
+        Variables:
+          S3_BUCKET:
+            Ref: s3ViewsBucket
+          iCUR_NAME:
+            Ref: CostUsageReport
+          CUR_S3_BUCKET:
+            Ref: s3CURBucket
+          REGIONX:
+            Ref: AWS::Region
+  S3CURLambdaFnB:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: aws-cost-n-usage-S3-lambda-fn-B-2
+      Handler: File-Reader-S3-CUR-Parser-Lmbda-B-2.handler
+      Role:
+        Fn::GetAtt:
+        - LambdaExecutionRole
+        - Arn
+      Timeout: '300'
+      Runtime: nodejs6.10
+      MemorySize: 1536
+      Code:
+        S3Bucket:
+          Fn::FindInMap:
+          - RegionMap
+          - Ref: AWS::Region
+          - bucketname
+        S3Key: File-Reader-S3-CUR-Parser-Lmbda-B-2.zip
+      Environment:
+        Variables:
+          S3_BUCKET:
+            Ref: s3ViewsBucket
+          iCUR_NAME:
+            Ref: CostUsageReport
+          CUR_S3_BUCKET:
+            Ref: s3CURBucket
+          REGIONX:
+            Ref: AWS::Region
+  AthenaCURLambdaFn:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: aws-cost-n-usage-Athena-lambda-fn-C
+      Handler: File-Reader-Athena-Lambda-Fn-C.handler
+      Role:
+        Fn::GetAtt:
+        - LambdaExecutionRole
+        - Arn
+      Timeout: '300'
+      Runtime: nodejs6.10
+      MemorySize: 1536
+      Code:
+        S3Bucket:
+          Fn::FindInMap:
+          - RegionMap
+          - Ref: AWS::Region
+          - bucketname
+        S3Key: File-Reader-Athena-Lambda-Fn-C.zip
+      Environment:
+        Variables:
+          S3_BUCKET:
+            Ref: s3ViewsBucket
+          CUR_S3_BUCKET:
+            Ref: s3CURBucket
+          REGIONX:
+            Ref: AWS::Region
+  AthenaCURLambdaFnC:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: aws-cost-n-usage-Athena-lambda-fn-C-2
+      Handler: File-Reader-Athena-Lambda-Fn-C-2.handler
+      Role:
+        Fn::GetAtt:
+        - LambdaExecutionRole
+        - Arn
+      Timeout: '300'
+      Runtime: nodejs6.10
+      MemorySize: 1536
+      Code:
+        S3Bucket:
+          Fn::FindInMap:
+          - RegionMap
+          - Ref: AWS::Region
+          - bucketname
+        S3Key: File-Reader-Athena-Lambda-Fn-C-2.zip
+      Environment:
+        Variables:
+          S3_BUCKET:
+            Ref: s3ViewsBucket
+          CUR_S3_BUCKET:
+            Ref: s3CURBucket
+          REGIONX:
+            Ref: AWS::Region
+  InitFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        ZipFile: |
+          const AWS = require("aws-sdk"); const response = require("cfn-response"); const docClient = new AWS.DynamoDB.DocumentClient(); exports.handler = function(event, context) {    var darray = [];
+              darray.push("new-table-response");
+              console.log(JSON.stringify(event,null,2));
+              var params = {
+                TableName: event.ResourceProperties.DynamoTableName,
+                Item:{
+                    "iKey": 10007770157,
+                    "Flag": 0,
+                    "TableDescription": darray
+                }
+            };
+          docClient.put(params, function(err, data) { if (err) {  response.send(event, context, "FAILED", {});
+          } else {  response.send(event, context, "SUCCESS", {});
+          } }); };
+      Handler: index.handler
+      Role:
+        Fn::GetAtt:
+        - LambdaExecutionRole
+        - Arn
+      Runtime: nodejs6.10
+      Timeout: 60
+  AthenaTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: AthenaTable
+      KeySchema:
+        HashKeyElement:
+          AttributeName: iKey
+          AttributeType: N
+      ProvisionedThroughput:
+        ReadCapacityUnits: '50'
+        WriteCapacityUnits: '50'
+  InitializeDynamoDB:
+    Type: Custom::InitFunction
+    DependsOn: AthenaTable
+    Properties:
+      ServiceToken:
+        Fn::GetAtt:
+        - InitFunction
+        - Arn
+      DynamoTableName:
+        Ref: AthenaTable

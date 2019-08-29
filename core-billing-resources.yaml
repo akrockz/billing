@@ -1,0 +1,221 @@
+---
+
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'This template creates a Billing bucket in the Master Account'
+
+Parameters:
+
+  S3BillingBucket:
+    Description: "Name of S3 Bucket"
+    Type: String
+  ResourceNamespace:
+    Description: Output export prefix
+    Type: String
+  SnsBillingTopicName:
+    Description: "Name of SNS Topic for billing alarms."
+    Type: String
+  AlarmEmailAddress:
+    Type: String
+    Description: The email address to send Billing Alarm notifcations to.
+  Threshold1:
+    Type: Number
+    Description: The first value in USD that triggers a CloudWatch Alarm/Email when breached.
+  Threshold2:
+    Type: Number
+    Description: The second value in USD that triggers a CloudWatch Alarm/Email when breached.
+  Threshold3:
+    Type: Number
+    Description: The third value in USD that triggers a CloudWatch Alarm/Email when breached.
+  Threshold4:
+    Type: Number
+    Description: The fourth value in USD that triggers a CloudWatch Alarm/Email when breached.
+  Threshold5:
+    Type: Number
+    Description: The fifth value in USD that triggers a CloudWatch Alarm/Email when breached.
+
+Conditions:
+
+  PrimaryRegion:
+    Fn::Equals: [ Ref: "AWS::Region", "ap-southeast-1" ]
+
+  BillingRegion:
+    Fn::Equals: [ Ref: "AWS::Region", "us-east-1" ]
+
+Resources:
+
+  S3Bucket:
+    Type: "AWS::S3::Bucket"
+    Condition: PrimaryRegion
+    DeletionPolicy: Retain
+    Properties:
+      BucketName:
+        Ref: S3BillingBucket
+
+  BucketPolicy:
+    Type: "AWS::S3::BucketPolicy"
+    Condition: PrimaryRegion
+    Properties:
+      Bucket:
+        Ref: S3Bucket
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: 'AllowGet'
+            Effect: Allow
+            Principal:
+              AWS: 'arn:aws:iam::2343232:root'
+            Action:
+              - 's3:GetBucketAcl'
+              - 's3:GetBucketPolicy'
+            Resource:
+              Fn::Sub: "arn:aws:s3:::${S3BillingBucket}"
+          - Sid: 'AllowPut'
+            Effect: Allow
+            Principal:
+              AWS: 'arn:aws:iam::23432432:root'
+            Action:
+              - 's3:PutObject'
+            Resource:
+              Fn::Sub: "arn:aws:s3:::${S3BillingBucket}/*"
+
+  BillingTopic:
+    Type: AWS::SNS::Topic
+    Condition: BillingRegion
+    Properties:
+      DisplayName: BillingTopic
+      Subscription:
+      - Endpoint:
+          Ref: AlarmEmailAddress
+        Protocol: email
+      TopicName:
+        Ref: SnsBillingTopicName
+
+  BillingAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Condition: BillingRegion
+    Properties:
+      ActionsEnabled: 'true'
+      AlarmActions:
+      - Ref: BillingTopic
+      AlarmDescription: Triggers an Alarm/EMail when the EstimatedCharges are greater
+        than Threshold USD for 6 hours.
+      AlarmName: BillingAlarm
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+      - Name: Currency
+        Value: USD
+      EvaluationPeriods: '1'
+      MetricName: EstimatedCharges
+      Namespace: AWS/Billing
+      Period: '21600'
+      Statistic: Maximum
+      Threshold:
+        Ref: Threshold1
+
+  BillingAlarm2:
+    Type: AWS::CloudWatch::Alarm
+    Condition: BillingRegion
+    Properties:
+      ActionsEnabled: 'true'
+      AlarmActions:
+      - Ref: BillingTopic
+      AlarmDescription: Triggers an Alarm/EMail when the EstimatedCharges are greater
+        than Threshold2 USD for 6 hours.
+      AlarmName: BillingAlarm2
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+      - Name: Currency
+        Value: USD
+      EvaluationPeriods: '1'
+      MetricName: EstimatedCharges
+      Namespace: AWS/Billing
+      Period: '21600'
+      Statistic: Maximum
+      Threshold:
+        Ref: Threshold2
+
+  BillingAlarm3:
+    Type: AWS::CloudWatch::Alarm
+    Condition: BillingRegion
+    Properties:
+      ActionsEnabled: 'true'
+      AlarmActions:
+      - Ref: BillingTopic
+      AlarmDescription: Triggers an Alarm/EMail when the EstimatedCharges are greater
+        than Threshold3 USD for 6 hours.
+      AlarmName: BillingAlarm3
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+      - Name: Currency
+        Value: USD
+      EvaluationPeriods: '1'
+      MetricName: EstimatedCharges
+      Namespace: AWS/Billing
+      Period: '21600'
+      Statistic: Maximum
+      Threshold:
+        Ref: Threshold3
+
+  BillingAlarm4:
+    Type: AWS::CloudWatch::Alarm
+    Condition: BillingRegion
+    Properties:
+      ActionsEnabled: 'true'
+      AlarmActions:
+      - Ref: BillingTopic
+      AlarmDescription: Triggers an Alarm/EMail when the EstimatedCharges are greater
+        than Threshold3 USD for 6 hours.
+      AlarmName: BillingAlarm4
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+      - Name: Currency
+        Value: USD
+      EvaluationPeriods: '1'
+      MetricName: EstimatedCharges
+      Namespace: AWS/Billing
+      Period: '21600'
+      Statistic: Maximum
+      Threshold:
+        Ref: Threshold4
+
+  BillingAlarm5:
+    Type: AWS::CloudWatch::Alarm
+    Condition: BillingRegion
+    Properties:
+      ActionsEnabled: 'true'
+      AlarmActions:
+      - Ref: BillingTopic
+      AlarmDescription: Triggers an Alarm/EMail when the EstimatedCharges are greater
+        than Threshold3 USD for 6 hours.
+      AlarmName: BillingAlarm5
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+      - Name: Currency
+        Value: USD
+      EvaluationPeriods: '1'
+      MetricName: EstimatedCharges
+      Namespace: AWS/Billing
+      Period: '21600'
+      Statistic: Maximum
+      Threshold:
+        Ref: Threshold5
+
+Outputs:
+
+  S3BillingBucket:
+    Condition: PrimaryRegion
+    Description: S3BucketName
+    Value:
+      Ref: S3Bucket
+    Export:
+      Name:
+        Fn::Sub: "${ResourceNamespace}:S3BucketName"
+
+  S3BillingTopic:
+    Condition: BillingRegion
+    Description: SnsBillingTopicName
+    Value:
+      Ref: BillingTopic
+    Export:
+      Name:
+        Fn::Sub: "${ResourceNamespace}:SnsBillingTopicName"

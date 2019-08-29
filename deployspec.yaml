@@ -1,0 +1,50 @@
+- label: deploy-core-billing-resources
+  type: create_stack
+  params:
+    template: core-billing-resources.yaml
+    stack_name: "{{ core.Project }}-{{ core.App }}-resources"
+    parameters:
+      S3BillingBucket: sia-core-billing
+      ResourceNamespace: core-billing
+      SnsBillingTopicName: sia-billing-alarms
+      AlarmEmailAddress: aws.com
+      Threshold1: '500'
+      Threshold2: '1000'
+      Threshold3: '2500'
+      Threshold4: '7500'
+      Threshold5: '10000'
+    accounts:
+      - "345345"  # master account
+    regions:
+      - ap-southeast-1  # Asia Pacific (Singapore)
+      - us-east-1  # N.Virginia (for billing alarms)
+
+- label: deploy-core-budgets
+  type: create_stack
+  params:
+    template: core-budgets.yaml
+    stack_name: "{{ core.Project }}-{{ core.App }}-budgets"
+    parameters:
+      ResourceNamespace: core-billing
+      SnsBillingTopicName: sia-billing-alarms
+      AlarmEmailAddress: aws.com
+      Dev1AccountId: '435425'
+    accounts:
+      - "243242"  # master account
+    regions:
+      - ap-southeast-1  # Asia Pacific (Singapore)
+
+- label: deploy-core-views
+  type: create_stack
+  params:
+    template: core-billing-views.yaml
+    stack_name: "{{ core.Project }}-{{ core.App }}-billing-views"
+    parameters:
+      s3CURBucket: sia-core-billing
+      s3ViewsBucket: sia-core-billing-views
+      CostUsageReport: MasterReport
+    accounts:
+      - "234342"  # master account
+    regions:
+      - ap-southeast-1  # Asia Pacific (Singapore)
+

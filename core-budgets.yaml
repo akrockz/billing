@@ -1,0 +1,55 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Budgets for accounts.'
+
+Parameters:
+
+  ResourceNamespace:
+    Description: Output export prefix
+    Type: String
+
+  # TODO Use Fn::ImportValue to lookup the billing SNS topic (and subscribe to that).
+
+  SnsBillingTopicName:
+    Description: 'Name of SNS Topic for billing alarms - use ImportValue.'
+    Type: String
+
+  AlarmEmailAddress:
+    Type: String
+    Description: The email address to send Billing Alarm notifcations to.
+
+  Dev1AccountId:
+    Type: String
+    Description: DEV1 AWS Account Id.
+
+Resources:
+
+  # TODO Consider consolidating all resources needed for a portfolio, application into a single stack, so it's easier to copy + paste.
+  Dev1Budget:
+    Type: 'AWS::Budgets::Budget'
+    Properties:
+      NotificationsWithSubscribers:
+        - Notification:
+            NotificationType: ACTUAL
+            ComparisonOperator: GREATER_THAN
+            Threshold: 90
+          Subscribers:
+            - SubscriptionType: EMAIL
+              Address: !Ref AlarmEmailAddress
+        - Notification:
+            NotificationType: FORECASTED
+            ComparisonOperator: GREATER_THAN
+            Threshold: 100
+          Subscribers:
+            - SubscriptionType: EMAIL
+              Address: !Ref AlarmEmailAddress
+      Budget:
+        BudgetLimit:
+          Amount: 1500
+          Unit: 'USD'
+        BudgetName: 'Monthly DEV1 DS/DE Team'
+        BudgetType: 'COST'
+        TimeUnit: 'MONTHLY'
+        CostFilters:
+          LinkedAccount:
+            - !Ref Dev1AccountId
